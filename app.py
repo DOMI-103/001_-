@@ -2,6 +2,7 @@ import streamlit as st
 import main
 import matplotlib.pyplot as plt
 import datetime
+import japanize_matplotlib
 
 st.set_page_config(page_title="給料計算アプリ", layout="centered")
 
@@ -152,16 +153,16 @@ if "results" in st.session_state:
                     "とらや": "#008000",
                     "ハルエネ": "#9932cc"
                 }
-
+                
                 labels = []
                 salaries = []
                 colors = []
-
+                
                 for job, salary in salaries_dict.items():
                     labels.append(job)
                     salaries.append(salary)
                     colors.append(color_map.get(job, "#cccccc"))
-
+                
                 ax.pie(
                     salaries,
                     labels=labels,
@@ -169,9 +170,9 @@ if "results" in st.session_state:
                     autopct="%1.1f%%",
                     startangle=90
                 )
-
+                
                 ax.set_title("給料割合")
-
+                
                 st.pyplot(fig)
                 plt.close(fig)
 
