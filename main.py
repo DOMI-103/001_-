@@ -49,26 +49,31 @@ PARTTIME_JOBS = {
 
 def get_service():
 
-    if "credentials" not in st.session_state:
+    flow = Flow.from_client_config(
+        {
+            "web": {
+                "client_id": st.secrets["google"]["client_id"],
+                "client_secret": st.secrets["google"]["client_secret"],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+            }
+        },
+        scopes=SCOPES,
+        redirect_uri=st.secrets["google"]["redirect_uri"],
+    )
 
-        flow = Flow.from_client_config(
-            {
-                "web": {
-                    "client_id": st.secrets["google"]["client_id"],
-                    "client_secret": st.secrets["google"]["client_secret"],
-                    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                    "token_uri": "https://oauth2.googleapis.com/token",
-                }
-            },
-            scopes=SCOPES,
-            redirect_uri=st.secrets["google"]["redirect_uri"],
-        )
+    auth_url, _ = flow.authorization_url(prompt="consent")
 
-        auth_url, _ = flow.authorization_url(prompt="consent")
+    st.markdown(f"[Googleログインはこちら]({auth_url})")
 
-        st.write("### 🔐 Googleログインしてください")
-        st.markdown(f"[ここをクリックして認証]({auth_url})")
-        st.stop()
+    code = st.text_input("認証コードを入力してください")
+
+    if code:
+        flow.fetch_token(code=code)
+        creds = flow.credentials
+        return build("calendar", "v3", credentials=creds)
+
+    st.stop()
 
     credentials = st.session_state["credentials"]
     return build("calendar", "v3", credentials=credentials)
