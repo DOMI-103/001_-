@@ -2,7 +2,6 @@ import streamlit as st
 import main
 import matplotlib.pyplot as plt
 import datetime
-import japanize_matplotlib
 
 st.set_page_config(page_title="給料計算アプリ", layout="centered")
 
@@ -147,7 +146,7 @@ if "results" in st.session_state:
             if results["total_salary"] > 0:
 
                 fig, ax = plt.subplots()
-
+                
                 color_map = {
                     "早稲アカ": "#ff4500",
                     "とらや": "#008000",
