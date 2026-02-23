@@ -1,7 +1,6 @@
 import streamlit as st
 import main
 import matplotlib.pyplot as plt
-import matplotlib.font_manager as fm
 import datetime
 
 st.set_page_config(page_title="給料計算アプリ", layout="centered")
@@ -15,9 +14,6 @@ PASSWORD = "1234"
 
 # =========================
 # 年月スライド式変更
-# =========================
-# =========================
-# 年月スライド式変更（左右対称修正版）
 # =========================
 if "selected_date" not in st.session_state:
     st.session_state.selected_date = datetime.date(2026, 2, 1)
@@ -151,11 +147,6 @@ if "results" in st.session_state:
 
                 fig, ax = plt.subplots()
 
-                # ===== Windows日本語フォント =====
-                font_path = "C:/Windows/Fonts/msgothic.ttc"
-                font_prop = fm.FontProperties(fname=font_path)
-
-                # ===== 色指定 =====
                 color_map = {
                     "早稲アカ": "#ff4500",
                     "とらや": "#008000",
@@ -171,7 +162,7 @@ if "results" in st.session_state:
                     salaries.append(salary)
                     colors.append(color_map.get(job, "#cccccc"))
 
-                wedges, texts, autotexts = ax.pie(
+                ax.pie(
                     salaries,
                     labels=labels,
                     colors=colors,
@@ -179,18 +170,12 @@ if "results" in st.session_state:
                     startangle=90
                 )
 
-                for text in texts:
-                    text.set_fontproperties(font_prop)
-
-                for autotext in autotexts:
-                    autotext.set_fontproperties(font_prop)
-
-                ax.set_title("給料割合", fontproperties=font_prop)
+                ax.set_title("給料割合")
 
                 st.pyplot(fig)
+                plt.close(fig)
 
             else:
                 st.info("データがありません")
 
-    # 初回のみ展開、その後折り畳み可能
     st.session_state["results"]["expanded"] = True
