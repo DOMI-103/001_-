@@ -46,38 +46,41 @@ PARTTIME_JOBS = {
 # ==============================
 # Google認証（クラウド用）
 # ==============================
-
 def get_service():
+
+    if "credentials" in st.session_state:
+        return build("calendar", "v3", credentials=st.session_state["credentials"])
 
     flow = Flow.from_client_config(
         {
             "web": {
                 "client_id": st.secrets["google"]["client_id"],
                 "client_secret": st.secrets["google"]["client_secret"],
-                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-                "token_uri": "https://oauth2.googleapis.com/token",
+                "auth_uri": st.secrets["google"]["auth_uri"],
+                "token_uri": st.secrets["google"]["token_uri"],
             }
         },
         scopes=SCOPES,
         redirect_uri=st.secrets["google"]["redirect_uri"],
     )
 
-    auth_url, _ = flow.authorization_url(prompt="consent")
+    query_params = st.query_params
 
-    st.markdown(f"[Googleログインはこちら]({auth_url})")
+    if "code" not in query_params:
 
-    code = st.text_input("認証コードを入力してください")
+        auth_url, _ = flow.authorization_url(
+            access_type="offline",
+            prompt="consent"
+        )
 
-    if code:
-        flow.fetch_token(code=code)
-        creds = flow.credentials
-        return build("calendar", "v3", credentials=creds)
+        st.markdown(f"[👉 Googleでログインする]({auth_url})")
+        st.stop()
 
-    st.stop()
-
-    credentials = st.session_state["credentials"]
-    return build("calendar", "v3", credentials=credentials)
-
+    else:
+        flow.fetch_token(code=query_params["code"])
+        credentials = flow.credentials
+        st.session_state["credentials"] = credentials
+        return build("calendar", "v3", credentials=credentials)
 
 # ==============================
 # 月範囲取得
