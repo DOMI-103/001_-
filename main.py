@@ -56,8 +56,8 @@ def get_service():
             "web": {
                 "client_id": st.secrets["google"]["client_id"],
                 "client_secret": st.secrets["google"]["client_secret"],
-                "auth_uri": st.secrets["google"]["auth_uri"],
-                "token_uri": st.secrets["google"]["token_uri"],
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
             }
         },
         scopes=SCOPES,
@@ -66,15 +66,21 @@ def get_service():
 
     query_params = st.query_params
 
-    if "code" not in query_params:
+    # 🔥 すでに認証コードがある場合のみトークン取得
+    if "code" in query_params:
 
-        auth_url, _ = flow.authorization_url(
-            access_type="offline",
-            prompt="consent"
-        )
+        flow.fetch_token(code=query_params["code"])
+        credentials = flow.credentials
+        st.session_state["credentials"] = credentials
 
-        st.markdown(f"[👉 Googleでログインする]({auth_url})")
-        st.stop()
+        return build("calendar", "v3", credentials=credentials)
+
+    # 🔥 まだ認証していない場合だけログイン表示
+    auth_url, _ = flow.authorization_url(prompt="consent")
+
+    st.markdown(f"[Googleログインはこちら]({auth_url})")
+
+    st.stop()
 
     else:
         flow.fetch_token(code=query_params["code"])
