@@ -1,9 +1,9 @@
 import datetime
-import os
 import streamlit as st
 from dateutil.relativedelta import relativedelta
 from google_auth_oauthlib.flow import Flow
 from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
 
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 
@@ -25,8 +25,7 @@ WASEDA_KOMA = [
 
 def calc_waseaka(hours, wage, work_days, koma_count):
     koma_wage = wage * 1.5
-    salary = koma_count * koma_wage + 425 * work_days + koma_count * 215
-    return salary
+    return koma_count * koma_wage + 425 * work_days + koma_count * 215
 
 
 def calc_toraya(hours, wage, work_days):
@@ -44,12 +43,19 @@ PARTTIME_JOBS = {
 }
 
 # ==============================
-# Google認証（クラウド用）
+# Google認証（完全修正版）
 # ==============================
 def get_service():
 
+    # すでにログイン済みならそれを使う
     if "credentials" in st.session_state:
-        return build("calendar", "v3", credentials=st.session_state["credentials"])
+        creds = st.session_state["credentials"]
+
+        # トークン期限切れ対応
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+
+        return build("calendar", "v3", credentials=creds)
 
     flow = Flow.from_client_config(
         {
@@ -66,32 +72,25 @@ def get_service():
 
     query_params = st.query_params
 
-    # 🔥 すでに認証コードがある場合のみトークン取得
+    # Googleから戻ってきた場合
     if "code" in query_params:
-
         flow.fetch_token(code=query_params["code"])
         credentials = flow.credentials
         st.session_state["credentials"] = credentials
-
         return build("calendar", "v3", credentials=credentials)
 
-    # 🔥 まだ認証していない場合だけログイン表示
+    # まだログインしていない場合
     auth_url, _ = flow.authorization_url(prompt="consent")
 
-    st.markdown(f"[Googleログインはこちら]({auth_url})")
+    st.markdown("### 🔐 Googleログインが必要です")
+    st.markdown(f"[👉 ここをタップしてログイン]({auth_url})")
 
     st.stop()
 
-    else:
-        flow.fetch_token(code=query_params["code"])
-        credentials = flow.credentials
-        st.session_state["credentials"] = credentials
-        return build("calendar", "v3", credentials=credentials)
 
 # ==============================
 # 月範囲取得
 # ==============================
-
 def get_month_range(year, month):
     start = datetime.datetime(year, month, 1)
     end = start + relativedelta(months=1)
@@ -101,7 +100,6 @@ def get_month_range(year, month):
 # ==============================
 # 給料計算
 # ==============================
-
 def calculate_salary(year, month):
 
     service = get_service()
@@ -139,12 +137,10 @@ def calculate_salary(year, month):
 
                 if job == "早稲アカ":
                     for koma_name, koma_start, koma_end in WASEDA_KOMA:
-
                         koma_start_dt = start.replace(
                             hour=int(koma_start.split(":")[0]),
                             minute=int(koma_start.split(":")[1])
                         )
-
                         koma_end_dt = start.replace(
                             hour=int(koma_end.split(":")[0]),
                             minute=int(koma_end.split(":")[1])
